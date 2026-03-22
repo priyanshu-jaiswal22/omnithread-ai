@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 253 5% 5%;
+    --foreground: 0 0% 100%;
+    --card: 252 11% 7%;
+    --card-foreground: 0 0% 100%;
+    --popover: 252 11% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 280 80% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 84% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 13% 40%;
+    --muted-foreground: 220 5% 70%;
+    --accent: 160 84% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 18%;
+    --input: 220 10% 18%;
+    --ring: 280 80% 52%;
+    --chart-1: 280 80% 52%;
+    --chart-2: 160 84% 40%;
+    --chart-3: 220 70% 50%;
+    --chart-4: 40 84% 55%;
+    --chart-5: 10 84% 55%;
+    --radius: 0.5rem;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary via-primary to-secondary;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  .shimmer {
+    @apply animate-pulse;
+  }
+
+  .pulse-soft {
+    @apply animate-pulse;
+  }
+}
