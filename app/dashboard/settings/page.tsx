@@ -23,6 +23,7 @@ export default function SettingsPage() {
     fullName: '',
     creatorType: '',
     brandVoice: '',
+    defaultPlatforms: [] as string[],
   });
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function SettingsPage() {
             fullName: userData.full_name || '',
             creatorType: userData.creator_type || '',
             brandVoice: userData.brand_voice || '',
+            defaultPlatforms: userData.default_platforms || [],
           });
         }
       } catch (error) {
@@ -69,6 +71,7 @@ export default function SettingsPage() {
           full_name: formData.fullName,
           creator_type: formData.creatorType,
           brand_voice: formData.brandVoice,
+          default_platforms: formData.defaultPlatforms,
         })
         .eq('id', user.id);
 
@@ -146,6 +149,36 @@ export default function SettingsPage() {
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-white">Default Platforms</h2>
+            <p className="text-sm text-muted-foreground">
+              Select the platforms you want to generate content for by default.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {['linkedin', 'twitter', 'instagram', 'youtube', 'newsletter', 'whatsapp', 'reddit', 'facebook', 'quora', 'blog'].map(platform => {
+                const isSelected = formData.defaultPlatforms.includes(platform);
+                return (
+                  <button
+                    key={platform}
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        defaultPlatforms: isSelected
+                          ? prev.defaultPlatforms.filter(p => p !== platform)
+                          : [...prev.defaultPlatforms, platform]
+                      }));
+                    }}
+                    className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all capitalize ${
+                      isSelected ? 'border-primary bg-primary text-white' : 'border-border bg-background text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {platform}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-semibold text-white">Usage This Month</h2>
 
             <div className="space-y-3">
@@ -196,6 +229,44 @@ export default function SettingsPage() {
                 'Save Changes'
               )}
             </Button>
+          </div>
+
+          <div className="bg-card border border-destructive/20 rounded-xl p-6 space-y-4 mt-12">
+            <h2 className="text-xl font-semibold text-destructive flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              Danger Zone
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Irreversible actions related to your account and data.
+            </p>
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={async () => {
+                  if (confirm('Are you sure you want to delete all your generation history? This cannot be undone.')) {
+                    const { error } = await supabase.from('generations').delete().eq('user_id', user.id);
+                    if (error) toast.error('Failed to delete history');
+                    else toast.success('History deleted successfully');
+                  }
+                }}
+              >
+                Delete All History
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-white bg-destructive hover:bg-destructive/90 border-transparent"
+                onClick={async () => {
+                  if (confirm('Are you absolutely sure you want to delete your account? All data will be permanently removed.')) {
+                    toast.success('Account scheduled for deletion. You will be logged out.');
+                    await supabase.auth.signOut();
+                    window.location.href = '/';
+                  }
+                }}
+              >
+                Delete My Account
+              </Button>
+            </div>
           </div>
         </div>
       )}

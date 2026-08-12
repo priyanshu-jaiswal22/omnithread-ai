@@ -62,6 +62,17 @@ export default function SignupPage() {
 
       if (profileError) throw profileError;
 
+      // Send Welcome Email
+      try {
+        await fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, name: formData.fullName }),
+        });
+      } catch (emailError) {
+        console.error('Failed to send welcome email in background', emailError);
+      }
+
       toast.success('Account created! Redirecting to onboarding...');
       setTimeout(() => router.push('/dashboard'), 1500);
     } catch (error) {

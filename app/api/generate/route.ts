@@ -87,13 +87,29 @@ export async function POST(request: NextRequest) {
       throw genError;
     }
 
+    const newCreditsUsed = userData.credits_used + 1;
     const { error: updateError } = await supabase
       .from('users')
-      .update({ credits_used: userData.credits_used + 1 })
+      .update({ credits_used: newCreditsUsed })
       .eq('id', userId);
 
     if (updateError) {
       console.error('Failed to update credits:', updateError);
+    } else {
+      // If exactly 1 credit is left after this generation
+      if (userData.credits_limit - newCreditsUsed === 1) {
+        try {
+          const { data: userEmailData } = await supabase.auth.admin.getUserById(userId);
+          const email = userEmailData?.user?.email;
+          if (email) {
+            import('@/lib/email').then(({ sendCreditWarningEmail }) => {
+              sendCreditWarningEmail(email);
+            });
+          }
+        } catch (e) {
+          console.error('Failed to trigger warning email', e);
+        }
+      }
     }
 
     return NextResponse.json({

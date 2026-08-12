@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { transcribeAudio } from '@/lib/groq';
 
-const ALLOWED_TYPES = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/m4a'];
+const ALLOWED_TYPES = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/m4a', 'audio/x-m4a'];
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
@@ -26,29 +27,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const buffer = await file.arrayBuffer();
-    const formDataToSend = new FormData();
-    formDataToSend.append('file', new Blob([buffer], { type: file.type }), file.name);
-    formDataToSend.append('model', 'whisper-large-v3');
-    formDataToSend.append('language', 'en');
-
-    const response = await fetch('https://api.groq.com/transcriptions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: formDataToSend,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Groq API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const duration = Math.round((file.size / (128 * 1024)) * 8);
+    const transcriptText = await transcribeAudio(file);
+    const duration = Math.round((file.size / (128 * 1024)) * 8); // approximate duration
 
     return NextResponse.json({
-      transcript: data.text,
+      transcript: transcriptText,
       duration,
     });
   } catch (error) {

@@ -150,11 +150,34 @@ export function OutputGrid({
         </div>
 
         <div className="flex gap-3">
-          <Button className="flex-1 bg-primary hover:bg-primary/90 text-white">
+          <Button 
+            className="flex-1 bg-primary hover:bg-primary/90 text-white"
+            onClick={() => {
+              const csvRows = [
+                ['Platform', 'Content'],
+                ...entries.map(([platform, content]) => [
+                  PLATFORM_LABELS[platform as Platform],
+                  `"${content.replace(/"/g, '""')}"`
+                ])
+              ];
+              const csvContent = csvRows.map(e => e.join(',')).join('\n');
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.setAttribute('href', url);
+              link.setAttribute('download', `omnithread_export_${generationId}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          >
             📥 Export All as CSV
           </Button>
-          <Button className="flex-1 border-border text-white hover:bg-card border">
-            💾 Save to History
+          <Button 
+            className="flex-1 border-border text-muted-foreground bg-card border pointer-events-none"
+          >
+            <Check className="w-4 h-4 mr-2 inline" />
+            Auto-saved to History
           </Button>
         </div>
       </div>

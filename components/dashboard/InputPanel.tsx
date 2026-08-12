@@ -84,6 +84,43 @@ export function InputPanel({
     }
   };
 
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('File size exceeds 25MB limit');
+      return;
+    }
+
+    setUrlLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to transcribe audio');
+      }
+
+      const data = await response.json();
+      setScrapedContent(data.transcript);
+      setContent(data.transcript);
+      toast.success('Audio transcribed successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Transcription failed');
+    } finally {
+      setUrlLoading(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
   const handleGenerateClick = async () => {
     if (!content.trim()) {
       toast.error('Please provide content to generate posts from');
@@ -188,20 +225,47 @@ export function InputPanel({
         </TabsContent>
 
         <TabsContent value="audio" className="space-y-4">
-          <div className="bg-background border-2 border-dashed border-border rounded-lg p-8 text-center">
-            <Volume2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-white font-medium mb-1">Upload Audio</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              MP3, WAV, M4A • Max 25MB
-            </p>
-            <Button
-              variant="outline"
-              className="border-primary text-white hover:bg-card"
-              disabled={loading}
-            >
-              Coming Soon
-            </Button>
+          <div className="bg-background border-2 border-dashed border-border hover:border-primary/50 transition-colors rounded-lg p-8 text-center relative cursor-pointer">
+            <input 
+              type="file" 
+              accept="audio/mpeg, audio/wav, audio/mp4, audio/m4a, audio/x-m4a"
+              onChange={handleAudioUpload}
+              disabled={urlLoading || loading}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+            />
+            {urlLoading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin mb-3" />
+                <p className="text-white font-medium mb-1">Transcribing with Groq AI...</p>
+                <p className="text-sm text-muted-foreground">This usually takes about 10 seconds.</p>
+              </div>
+            ) : (
+              <>
+                <Volume2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-white font-medium mb-1">Upload Audio</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  MP3, WAV, M4A • Max 25MB
+                </p>
+                <Button
+                  variant="outline"
+                  className="border-primary text-white hover:bg-card pointer-events-none"
+                >
+                  Browse Files
+                </Button>
+              </>
+            )}
           </div>
+          {scrapedContent && (
+            <div>
+              <Label className="text-white mb-2 block">Transcribed Content</Label>
+              <Textarea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                disabled={loading}
+                className="min-h-[200px] bg-background border-border text-white focus:border-primary"
+              />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

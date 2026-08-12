@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 function extractVideoId(url: string): string | null {
   const patterns = [
@@ -13,27 +15,6 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
-function extractTextFromHTML(html: string): string {
-  let text = html
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .replace(/<style[^>]*>.*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return text.substring(0, 10000);
-}
-
-function extractTitle(html: string): string {
-  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (titleMatch) return titleMatch[1].trim();
-
-  const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-  if (h1Match) return h1Match[1].trim();
-
-  return 'Article';
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -45,12 +26,20 @@ export async function POST(request: NextRequest) {
 
     const videoId = extractVideoId(url);
     if (videoId) {
-      return NextResponse.json({
-        title: 'YouTube Video',
-        content: 'YouTube transcription feature coming soon. Please use text or URL mode for now.',
-        wordCount: 10,
-        type: 'youtube',
-      });
+      try {
+        const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+        const content = transcript.map(t => t.text).join(' ').substring(0, 10000);
+        const wordCount = content.split(/\s+/).filter(Boolean).length;
+        
+        return NextResponse.json({
+          title: 'YouTube Video',
+          content,
+          wordCount,
+          type: 'youtube',
+        });
+      } catch (error) {
+        throw new Error('Failed to fetch YouTube transcript. The video might not have captions enabled.');
+      }
     }
 
     const response = await fetch(url, {
@@ -64,8 +53,22 @@ export async function POST(request: NextRequest) {
     }
 
     const html = await response.text();
-    const content = extractTextFromHTML(html);
-    const title = extractTitle(html);
+    const $ = cheerio.load(html);
+    
+    // Remove unwanted elements
+    $('script, style, nav, footer, header, aside, .ad, .advertisement, [role="banner"], [role="navigation"]').remove();
+    
+    // Extract title
+    const title = $('title').text().trim() || $('h1').first().text().trim() || 'Article';
+    
+    // Extract content
+    // We prioritize article body, main content, or fall back to body
+    let contentNode = $('article, main, [role="main"]').first();
+    if (contentNode.length === 0) {
+      contentNode = $('body');
+    }
+    
+    const content = contentNode.text().replace(/\s+/g, ' ').trim().substring(0, 10000);
     const wordCount = content.split(/\s+/).filter(Boolean).length;
 
     return NextResponse.json({

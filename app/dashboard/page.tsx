@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 import { InputPanel } from '@/components/dashboard/InputPanel';
 import { OutputGrid } from '@/components/dashboard/OutputGrid';
+import { OnboardingModal } from '@/components/dashboard/OnboardingModal';
 import { User, Platform, PlatformOutputs } from '@/types';
 
 const supabase = createClient(
@@ -143,6 +144,27 @@ export default function DashboardPage(props: DashboardPageProps) {
     }
   };
 
+  const handleOnboardingComplete = async (data: { creator_type: string; default_platforms: Platform[]; brand_voice: string }) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          creator_type: data.creator_type,
+          default_platforms: data.default_platforms,
+          brand_voice: data.brand_voice,
+          onboarding_completed: true,
+        })
+        .eq('id', user!.id);
+
+      if (error) throw error;
+      
+      setUser(prev => prev ? { ...prev, ...data, onboarding_completed: true } : null);
+      toast.success('Onboarding complete! You can now generate posts.');
+    } catch (error) {
+      toast.error('Failed to save onboarding data');
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -158,7 +180,10 @@ export default function DashboardPage(props: DashboardPageProps) {
   const isFreeUser = user.plan === 'free';
 
   return (
-    <div className="flex-1 p-8 max-w-7xl mx-auto">
+    <div className="flex-1 p-8 max-w-7xl mx-auto relative">
+      {!user.onboarding_completed && (
+        <OnboardingModal onComplete={handleOnboardingComplete} />
+      )}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Generate Content</h1>
         <p className="text-muted-foreground">
